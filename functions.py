@@ -4,6 +4,7 @@ import numpy as np    # Scientific Computing
 import matplotlib.pyplot as plt   # Visualization
 import matplotlib.lines as mlines   # Visualization
 
+import time   # Execution time measurement
 from tqdm import tqdm   # Progress bar
 
 from collections import defaultdict   # Dictionary with default value
@@ -250,3 +251,63 @@ def plot_two_categories(profiles_df, posts_reader):
     f.set_figheight(8)
 
     return
+
+###[AQ2]
+
+def plot_running_times(functions, input_sizes, alg=""):
+
+    '''
+    Plot the running time of the algorithms implemented for different input sizes
+    '''
+
+    times = []
+
+    for func in functions:
+
+        all_sizes_times = []
+
+        for size in input_sizes:
+
+            curr_size_times = []
+
+            # Average result over 5 executions
+            for i in range(5):
+
+                # Start time
+                start = time.process_time()
+
+                # Execute function
+                func(size)
+
+                # End time
+                end = time.process_time()
+
+                # Compute execution time
+                curr_size_times.append(end-start)
+
+            all_sizes_times.append(sum(curr_size_times)/5)
+
+        times.append(all_sizes_times)
+
+    # Plot
+    f = plt.figure()
+    plt.xticks(input_sizes)
+    plt.ylabel("Execution time (seconds)", fontsize=14, labelpad=20)
+    plt.xlabel("Input size (N)", fontsize=14, labelpad=20)
+    plt.title("Running time of algorithms for different input sizes", fontsize=18, pad=15)
+    colors = ["Red", "Blue"]
+    if alg == "DP": colors = ["Blue"]
+    if alg == "AH": colors = ["Green"]
+    for i in range(len(functions)): plt.plot(input_sizes, times[i], '-^', color=colors[i])
+    plt.legend(["Recursive Algorithm", "DP Algorithm"], fontsize=14, loc="upper left")
+    if alg == "DP": plt.legend(["DP Algorithm"], fontsize=14, loc="upper left")
+    if alg == "AH": plt.legend(["Ad Hoc Algorithm"], fontsize=14, loc="upper left")
+    plt.ylim(0)
+    f.set_figwidth(14)
+    f.set_figheight(8)
+
+    return
+
+
+
+
