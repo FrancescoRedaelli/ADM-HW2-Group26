@@ -19,6 +19,137 @@ def initialize_posts_reader():
 
 ###[RQ2]
 
+## Since the number of posts is object of analysis, we fill the NaN values
+## Where not specified, number posts will be set at 0
+def adjustProfDf(df):
+    df.n_posts.fillna(0, inplace=True)
+    return df
+
+def computeCommentsLikesLocationAndType():
+    most_liked_posts = []
+    least_commented_posts = []
+    most_commented_posts = []
+    pic_video = Counter()
+    location_counter = Counter()
+
+    #At every iteration:
+    # Fill NaN value for the set of fields we are interest in
+    # Compute the chunk most liked, most commented and least commented, we append the result to a list
+    # Count the photos only posts and the mixed type post
+    # Count the posts where the location was registered
+    for chunk in pd.read_csv(r'C:\Users\PepeSa\Downloads\ADM\HMW2\instagram_posts.zip', delimiter='\t', chunksize = 500000):
+        chunk = adjustPostDf(chunk)
+        most_liked_posts.append(chunk.sort_values(by='numbr_likes', ascending = False).head(10))
+        least_commented_posts.append(chunk.sort_values(by = 'number_comments', ascending = True).head(10))
+        most_commented_posts.append(chunk.sort_values(by = 'number_comments', ascending = False).head(10))
+        pic_video['1'] += len(chunk.loc[chunk['post_type']==1])
+        pic_video['3'] += len(chunk.loc[chunk['post_type']==3])
+        location_yes = len(chunk.loc[chunk['location_id'] != ''])
+        location_counter['Y'] += location_yes
+        location_counter['N'] += (len(chunk) - location_yes)
+
+    # We concate the results, so that we get just one DataFrame rather than a list of DataFrames
+    most_liked_posts = pd.concat(most_liked_posts)
+    least_commented_posts = pd.concat(least_commented_posts)
+    most_commented_posts = pd.concat(most_commented_posts)
+    return {'mostLikedPosts': most_liked_posts, 'mostCommentedPosts':most_commented_posts, 
+            'leastCommentedPosts':least_commented_posts, 'typeCounter':pic_video, 
+            'locationCounter':location_counter}
+
+def getBusinessAccountPercentage(data_profiles):
+    business_counter = Counter()
+    # Count business accounts by filtering the DataFrame by 'is_business_account' (only True value will be taken).
+    # We will do the same thing for non-business accounts. As for NaN values, we will derive them by substracting
+    # the two previously computed values from the total profile amount
+
+    n_profiles = len(data_profiles)
+    business_counter['Y'] = len(data_profiles.loc[data_profiles['is_business_account'] == True])
+    business_counter['N'] =  len(data_profiles.loc[data_profiles['is_business_account'] == False])
+    business_counter['U'] = n_profiles - business_counter['Y'] - business_counter['N']
+
+    #Compute percentage
+
+    business_perc = business_counter['Y']*100/n_profiles
+    non_business_perc = business_counter['N']*100/n_profiles
+    NaN_business_perc = business_counter['U']*100/n_profiles
+    
+    #Round by 4 decimal points
+    business_perc = round(business_perc,4)
+    non_business_perc = round(non_business_perc,4)
+    NaN_business_perc = round(NaN_business_perc,4)
+    
+    # Now I compute business accounts vs non business accounts without keeping count of NaN values
+    total_without_NaN = n_profiles - business_counter['U']
+    business_perc_withoutNaN = round(business_counter['Y']*100/total_without_NaN, 4)
+    non_business_perc_withoutNaN = round(business_counter['N']*100/total_without_NaN, 4)
+
+    return (business_perc, non_business_perc,NaN_business_perc, 
+            business_perc_withoutNaN, non_business_perc_withoutNaN)
+
+def plot_location_registered(location_counter):
+    labels = 'Location Registered', 'No Location Registered'
+    tot = location_counter['Y'] + location_counter['N']
+    sizes = [round(location_counter['Y']*100/tot,4),round(location_counter['N']*100/tot,4)]
+    explode = (0.1, 0)
+
+    fig1, ax1 = plt.subplots()
+    ax1.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', startangle=90)
+    ax1.axis('equal') 
+
+    plt.show()
+    return
+
+def plot_business_accounts_withNaN(business_perc, non_business_perc,NaN_business_perc):
+    labels = 'Business Accounts', 'Non Business Accounts', 'NaN Business Accounts'
+    sizes = [business_perc,non_business_perc,NaN_business_perc]
+    explode = (0, 0, 0)
+
+    fig1, ax1 = plt.subplots()
+    ax1.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', startangle=90)
+    ax1.axis('equal') 
+
+    plt.show()
+    return
+
+def plot_business_accounts_withoutNaN(business_perc, non_business_perc):
+    labels = 'Business Accounts', 'Non Business Accounts'
+    sizes = [business_perc,non_business_perc]
+    explode = (0.1, 0)
+
+    fig1, ax1 = plt.subplots()
+    ax1.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', startangle=90)
+    ax1.axis('equal') 
+
+    plt.show()
+    return
+
+def plot_n_posts(first_ten):
+
+    '''
+    Plot the profiles by number of posts
+    '''
+        # Input: profile DataFrame 
+
+    profiles_ids = []
+    n_followers = []
+
+    #Fill every list with info
+    for x, profile in first_ten.iterrows():
+        profiles_ids.append((profile['profile_id']))
+        n_followers.append((profile['n_posts']))
+
+    # Plot
+    f = plt.figure()
+    plt.xticks(range(len(first_ten)), profiles_ids, rotation = 45)
+    plt.ylabel("Number of posts", fontsize=14, labelpad=20)
+    plt.xlabel("Profile ID", fontsize=14, labelpad=20)
+    plt.title("Number of posts for each profile", fontsize=18, pad=15)
+    plt.bar([y for y in range(0,len(first_ten))], n_followers, width=0.8, color='#fa0000', ec="k")
+    f.set_figwidth(14)
+    f.set_figheight(8)
+
+    return
+
 ###[RQ3]
 
 def retrieve_posts_time(posts_reader):
@@ -193,6 +324,123 @@ def plot_posts_top10(posts, time_intervals):
     return
 
 ###[RQ5]
+def plot_n_followers(first_ten):
+    
+    '''
+    Plot the profiles by number of FOLLOWERS
+    '''
+
+        # Input: profile DataFrame 
+
+    profiles_ids = []
+    n_followers = []
+
+    #Fill every list with info
+    for x, profile in first_ten.iterrows():
+        profiles_ids.append((profile['profile_id']))
+        n_followers.append((profile['followers']))
+
+    # Plot
+    f = plt.figure()
+    plt.xticks(range(10), profiles_ids)
+    plt.ylabel("Number of followers", fontsize=14, labelpad=20)
+    plt.xlabel("Profile ID", fontsize=14, labelpad=20)
+    plt.title("Number of followers for each profile", fontsize=18, pad=15)
+    plt.bar([y for y in range(0,10)], n_followers, width=0.8, color='#ff0000', ec="k")
+    f.set_figwidth(14)
+    f.set_figheight(8)
+    return
+
+def plot_most_visited_locations(most_location_id):    
+    '''
+    Plot the profiles by number of times a location has been visited
+    '''
+    labels = []
+    sizes = []
+    for x in most_location_id:
+        loc_id, times_visited = x
+        labels.append(loc_id)
+        sizes.append(times_visited)
+
+    fig1, ax1 = plt.subplots()
+    ax1.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
+    ax1.axis('equal') 
+
+    plt.show()
+    return
+
+def inf_posts(post_reader, inf_profile_id, inf_n_posts):
+    ##Input posts= dataFrame of posts
+    "Get the most influential user's infos"
+
+    inf_posts= []
+
+    for chunk in post_reader:
+        inf_posts.append(chunk.loc[chunk['profile_id'] == inf_profile_id])
+        ## We do this in order to avoid useless iterations, if inf_post has inf_n_posts elements,
+        ## we stop iterating since we have all the posts that we need
+        if(len(inf_posts) == inf_n_posts):
+            break        
+
+    return pd.concat(inf_posts)
+
+def countLikeAndCommentForPostType(inf_posts):
+    ## Counter init for counting post_type
+    post_type_counter = Counter({'1':0, '2':0, '3':0})
+    ## Counter init for likes and comments
+    like_by_type =  Counter({'1':0, '2':0, '3':0})
+    comment_by_type =  Counter({'1':0, '2':0, '3':0})
+    for post in inf_posts.itertuples():
+        post_type_counter[str(post.post_type)]+=1
+        like_by_type[str(post.post_type)]+=post.numbr_likes
+        comment_by_type[str(post.post_type)]+=post.number_comments
+    return {'PostTypeCounter':post_type_counter, 'LikeByType':like_by_type, 'CommentsByType':comment_by_type}
+
+def calculatePostTypePercentage(post_type_counter, len_inf_posts):
+    photo_percentage = round(post_type_counter['1'] * 100/len_inf_posts,4)
+    video_percentage = round(post_type_counter['2'] * 100/len_inf_posts,4)
+    multy_percentage = round(post_type_counter['3'] * 100/len_inf_posts,4)
+    return (photo_percentage, video_percentage, multy_percentage)
+
+def plot_post_by_type(photo_percentage, video_percentage, multy_percentage):    
+    '''
+    Plot post types
+    '''
+    labels = ['Photos', 'Videos', 'Mixed']
+    sizes = [photo_percentage, video_percentage, multy_percentage]
+
+    fig1, ax1 = plt.subplots()
+    ax1.pie(sizes, labels=labels, autopct='%1.2f%%', startangle=45)
+    ax1.axis('equal') 
+
+    plt.show()
+    return
+
+def plot_compared_to_followers(perc_likers, post_type, interaction_type):    
+    '''
+    Plot likes or comments compared to followers
+    '''
+    labels = ['Followers that ' + interaction_type + ' '+post_type, 
+              'Followers that does not '+ interaction_type + ' ' +post_type]
+    sizes = [perc_likers, 1-perc_likers]
+
+    fig1, ax1 = plt.subplots()
+    ax1.pie(sizes, labels=labels, autopct='%1.4f%%', startangle=45)
+    ax1.axis('equal') 
+
+    plt.show()
+    return
+
+def getMostVisitedLocations(most_location_id, locations):
+    "Get the rows corrisponding to the most visited locations"
+    most_visited_locations = []
+    for index, chunk in locations.iterrows():
+        if chunk['id'] in most_location_id:
+            most_visited_locations.append(locations.iloc[[index]])
+        ## We do this in order to avoid useless iterations, when we found the locations we need we stop the cycle
+        if(len(most_visited_locations) == len(most_location_id) ):
+            break
+    return pd.concat(most_visited_locations)
 
 ###[RQ6]
 
