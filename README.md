@@ -17,7 +17,7 @@ This projected attempted to use data obtained from Instagram extract information
 2. __`functions.py`__: 
 	> It is a collection of all the functions that are used to do the calculations.
 
-3. __`CommandLine.psh`__: 
+3. __`CommandLine.sh`__: 
 	> The script that answers the command line question
 
 ## Credits
