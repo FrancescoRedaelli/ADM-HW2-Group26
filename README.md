@@ -12,7 +12,7 @@ This projected attempted to use data obtained from Instagram extract information
 
 ## Summary of the files
 1. __`main.ipynb`__: 
-	> This notebook contains the all the answers the assignment. Most of the code cells are compromised of functions being called from the `functions.py` file with some small additions. The code cells gives verbal answers to questions and plots the required figures. It starts by answering the Research Questions, follows by the Bonus Points, and ends with Algorithmic Questions.
+	> This notebook contains the all the answers the assignment. Most of the code cells are composed of functions being called from the `functions.py` file with some small additions. The code cells gives verbal answers to questions and plots the required figures. It starts by answering the Research Questions, follows by the Bonus Points, and ends with Algorithmic Questions.
 
 2. __`functions.py`__: 
 	> It is a collection of all the functions that are used to do the calculations.
